@@ -18,13 +18,13 @@
     "url": "https://github.com/awto/mfjs-rx.git"
   },
   "devDependencies": {
-    "@mfjs/compiler": "1.0.x",
+    "@mfjs/compiler": "~1.1.0",
     "coffee-script": "^1.10.0",
     "expect.js": "^0.3.1",
     "mocha": "^2.4.5"
   },
   "peerDependencies": {
     "rx": "*",
-    "@mfjs/core": "1.0.x"
+    "@mfjs/core": "~1.1.0"
   }
 }
