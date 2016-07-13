@@ -1,6 +1,6 @@
 {
   "name": "@mfjs/rx",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "interface wrapper from Rx to @mfjs/core",
   "main": "index.js",
   "scripts": {
