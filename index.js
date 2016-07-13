@@ -2,9 +2,16 @@
 var M = require('@mfjs/core'), Rx = require('rx');
 
 module.exports = function(opts) {
-  var Observable = Rx.Observable, defs, proto;
+  function ObservableWrap(inner) {
+    this.inner = inner;
+  }
+  var Observable = Rx.Observable, defs = {};
   if (opts == null)
     opts = {};
+  if (opts.control == null)
+    opts.control = "token";
+  if (opts.wrap === true)
+    opts.wrap = ObservableWrap;
   Observable = Rx.Observable;
   function coerce(v) {
     if (Observable.isObservable(v))
@@ -13,52 +20,44 @@ module.exports = function(opts) {
       return Observable.fromPromise(v);
     return Observable["return"](v);
   }
-  function ObservableM() {}
-  ObservableM.prototype = new M.MonadDict();
-  ObservableM.prototype.pure = Observable["return"];
-  ObservableM.prototype.coerce = coerce;
-  ObservableM.prototype.apply = function(e, f) {
+  defs.pure = Observable["return"];
+  defs.coerce = coerce;
+  defs.apply = function(e, f) {
+    //TODO: eta
     return coerce(e).map(function(v) {
       return f(v);
     });
   };
-  ObservableM.prototype.arr = Observable.combineLatest;
-  ObservableM.prototype.empty = Observable.empty;
-  ObservableM.prototype.alt = Observable.merge;
-  ObservableM.prototype.bind =  opts.latest
+  defs.arr = Observable.combineLatest;
+  defs.empty = Observable.empty;
+  defs.alt = Observable.merge;
+  defs.bind =  opts.latest
     ? function(v, f) {
-      return coerce(v).flatMapLatest(function(v) {
-        return coerce(f(v));
+      return v.flatMapLatest(function(v) {
+        return f(v);
       });
     }
     : function(v, f) {
-      return coerce(v).flatMap(function(v) {
-        return coerce(f(v));
+      return v.flatMap(function(v) {
+        return f(v);
       });
     };
   if (opts.exceptions) {
-    ObservableM.prototype.raise = Observable["throw"];
-    ObservableM.prototype.handle = function(a, f) {
-      return coerce(a)["catch"](function(v) {
-        return coerce(f(v));
+    defs.raise = Observable["throw"];
+    defs.handle = function(a, f) {
+      return a["catch"](function(v) {
+        return f(v);
       });
     };
-    ObservableM.prototype["finally"] = function(a, f) {
-      return coerce(a)["finally"](function(v) {
-        return coerce(f(v));
+    defs["finally"] = function(a, f) {
+      return a["finally"](function(v) {
+        return f(v);
       });
     };
   }
-  defs = M.withControlByToken(new ObservableM());
-  proto = Observable.prototype;
-  function ObservableWrap(inner) {
-    this.inner = inner;
+  defs = M.defaults(defs,opts)
+  if (!opts.wrap) {
+    M.completePrototype(defs,Observable.prototype);
   }
-  if (opts.wrap) {
-    defs = M.wrap(defs, ObservableWrap);
-    proto = ObservableWrap.prototype;
-  }
-  defs = M.addContext(defs);
-  M.completePrototype(defs, proto, true);
   return defs;
 };
